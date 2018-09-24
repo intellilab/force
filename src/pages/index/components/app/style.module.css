@@ -1,0 +1,12 @@
+.wrap {
+  height: 100vh;
+  background: linear-gradient(to right,#ccf 0%,#bbf 100%);
+}
+
+.panel {
+  padding-top: 2rem;
+  padding-left: 6rem;
+  label {
+    display: block;
+  }
+}
