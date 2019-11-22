@@ -87,7 +87,7 @@ export default class Result extends React.Component {
 
   updateItems() {
     const { items } = this.state;
-    const firstGen = [[], [], [], []];
+    const firstGen = [[]];
     items.forEach((item, index) => {
       const {
         data: {
@@ -103,34 +103,23 @@ export default class Result extends React.Component {
         w: tw,
         h: th,
       });
-      firstGen[1].push({
-        index,
-        x1: rect.x2 - tw,
-        y1: rect.y1,
-        w: tw,
-        h: th,
-      });
-      firstGen[2].push({
-        index,
-        x1: rect.x1,
-        y1: rect.y2 - th,
-        w: tw,
-        h: th,
-      });
-      firstGen[3].push({
-        index,
-        x1: rect.x2 - tw,
-        y1: rect.y2 - th,
-        w: tw,
-        h: th,
-      });
     });
     const mutationFunction = (phenotype) => {
-      return phenotype.map(item => ({
-        ...item,
-        x1: item.x1 + (Math.floor(Math.random() * 3) - 1) * 3,
-        y1: item.y1 + (Math.floor(Math.random() * 3) - 1) * 3,
-      }));
+      return phenotype.map(rect => {
+        rect = { ...rect };
+        rect.x1 += (Math.floor(Math.random() * 3) - 1) * 3;
+        rect.y1 += (Math.floor(Math.random() * 3) - 1) * 3;
+        const rnd = Math.random();
+        const item = items[rect.index];
+        if (rnd < 0.3) {
+          // flip horizontally
+          rect.x1 = item.rect.cx * 2 - rect.x1 - rect.w;
+        } else if (rnd < 0.6) {
+          // flip vertically
+          rect.y1 = item.rect.cy * 2 - rect.y1 - rect.h;
+        }
+        return rect;
+      });
     };
     const crossoverFunction = (phenotypeA, phenotypeB) => {
       const halfLength = Math.floor(phenotypeA.length / 2);
@@ -147,19 +136,22 @@ export default class Result extends React.Component {
     };
     const fitnessFunction = (phenotype) => {
       let badness = 0;
-      phenotype.forEach((rect) => {
-        {
-          const { dx, dy, area } = rectJoin(rect, items[rect.index].rect);
+      phenotype.forEach((rect, i) => {
+        items.forEach((item, j) => {
+          const { dx, dy, area } = rectJoin(rect, item.rect);
           if (area) {
-            badness += area * 0.8;
-          } else {
-            badness += Math.min(Math.abs(dx), Math.abs(dy)) * 0.5;
+            badness += area * 0.5;
+          } else if (i === j) {
+            const dis = -Math.max(...[dx, dy].filter(v => v < 0));
+            badness += dis * 0.5;
           }
-        }
+        });
         phenotype.forEach((other) => {
           if (rect !== other) {
             const { area } = rectJoin(rect, other);
-            badness += area * 0.5;
+            if (area) {
+              badness += area * 0.8;
+            }
           }
         });
       });
@@ -176,6 +168,7 @@ export default class Result extends React.Component {
       geneticalgorithm.evolve();
     }
     const best = geneticalgorithm.best();
+    console.info('best:', best, geneticalgorithm.bestScore());
     this.setState({
       items: items.map((item, index) => ({
         ...item,
