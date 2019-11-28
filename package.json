@@ -28,9 +28,9 @@
     "husky": "^3.1.0"
   },
   "dependencies": {
-    "@babel/runtime": "^7.7.2",
+    "@babel/runtime": "^7.7.4",
     "@gera2ld/rem": "^0.1.2",
-    "core-js": "^3.4.2",
+    "core-js": "^3.4.5",
     "es6-tween": "^5.5.10",
     "geneticalgorithm": "^0.3.6",
     "lodash-es": "^4.17.15",

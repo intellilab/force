@@ -11,3 +11,9 @@ exports.pages = {
     },
   },
 };
+
+exports.global = {
+  cssModules: {
+    localIdentName: '[emoji]',
+  },
+};
