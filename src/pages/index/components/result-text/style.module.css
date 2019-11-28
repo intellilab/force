@@ -8,20 +8,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-}
-
-.align-left {
-  .bar {
-    transform-origin: left center;
-    background: linear-gradient(to right, rgba(0,94,240,.6) 0%, rgba(107,196,255,.6) 100%);
-  }
-}
-
-.align-right {
-  .bar {
-    transform-origin: right center;
-    background: linear-gradient(to left, rgba(0,94,240,.6) 0%, rgba(107,196,255,.6) 100%);
-  }
+  transform-origin: left center;
+  background: linear-gradient(to right, rgba(0,94,240,.6) 0%, rgba(107,196,255,.6) 100%);
 }
 
 .text {

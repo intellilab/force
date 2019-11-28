@@ -16,11 +16,9 @@ export default class Result extends React.Component {
 
   componentDidMount() {
     this.updateData();
-    this.draw();
   }
 
   componentDidUpdate(prevProps) {
-    this.draw();
     if (prevProps !== this.props) this.updateData();
   }
 
@@ -37,18 +35,13 @@ export default class Result extends React.Component {
     };
   }
 
-  handleBind = el => {
-    this.cache.canvas = el;
-    this.cache.ctx = el ? el.getContext('2d') : null;
-  }
-
   handleBindItem = (i, el) => {
     this.cache.nodes[i] = el;
   }
 
   handleMouseDown = e => {
     e.preventDefault();
-    if (this.dragStart(e)) {
+    if (this.dragStart(e, e.target)) {
       document.addEventListener('mousemove', this.handleMouseMove, false);
       document.addEventListener('mouseup', this.handleMouseUp, false);
     }
@@ -67,7 +60,7 @@ export default class Result extends React.Component {
 
   handleTouchStart = e => {
     const [touch] = e.changedTouches;
-    if (this.dragStart(touch)) {
+    if (this.dragStart(touch, e.target)) {
       document.addEventListener('touchmove', this.handleTouchMove, false);
       document.addEventListener('touchend', this.handleTouchEnd, false);
     }
@@ -185,15 +178,10 @@ export default class Result extends React.Component {
     });
   }
 
-  dragStart(e) {
+  dragStart(e, target) {
     const { offsetX, offsetY } = this.getOffset(e);
     const { items } = this.state;
-    const index = items.findIndex(item => {
-      const {
-        x1, y1, w, h,
-      } = item.rect;
-      return offsetX >= x1 && offsetX <= x1 + w && offsetY >= y1 && offsetY <= y1 + h;
-    });
+    const { index } = target.dataset;
     if (index >= 0) {
       const dragging = {
         x: offsetX,
@@ -209,26 +197,28 @@ export default class Result extends React.Component {
   dragMove(e) {
     const { dragging } = this;
     if (!dragging) return;
+    const { wrapProps } = this.props;
     const { offsetX, offsetY } = this.getOffset(e);
-    const { imageProps } = this.props;
     const { data: { rect } } = dragging;
     const x1 = rect.x1 + offsetX - dragging.x;
     const y1 = rect.y1 + offsetY - dragging.y;
-    const rects = transformRect([
+    const bboxpx = [
       x1, y1, x1 + rect.w, y1 + rect.h,
-    ], {
-      scale: 1 / imageProps.scale,
-      zoom: 1,
+    ];
+    const normalizedRect = transformRect(bboxpx, {
+      width: 1 / wrapProps.width,
+      height: 1 / wrapProps.height,
     });
+    const bbox = [normalizedRect.x1, normalizedRect.y1, normalizedRect.x2, normalizedRect.y2];
     const newData = {
       ...dragging.data,
-      srect: rects.rect,
-      rect: rects.srect,
+      bbox,
+      rect: buildRect(bboxpx),
     };
     const { items } = this.state;
     const newItems = [...items];
     newItems[dragging.index] = newData;
-    this.setState({ items: newItems }, this.draw);
+    this.setState({ items: newItems });
   }
 
   dragEnd() {
@@ -240,16 +230,14 @@ export default class Result extends React.Component {
   }
 
   updateData() {
-    const { data, imageProps } = this.props;
+    const { data, wrapProps } = this.props;
     if (!data) return;
-    const zoom = 1;
     const items = data.map(item => {
       const { text, bbox } = item;
-      const rects = transformRect(bbox, { ...imageProps, zoom });
+      const rect = transformRect(bbox, wrapProps);
       return {
         bbox,
-        zoom,
-        ...rects,
+        rect,
         data: {
           text,
           style: {
@@ -270,40 +258,25 @@ export default class Result extends React.Component {
     });
   }
 
-  draw() {
-    const { canvas, ctx } = this.cache;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const { items } = this.state;
-    const { imageProps: { el } } = this.props;
-    items.forEach(({ srect, rect }) => {
-      const {
-        x1: sx1, y1: sy1, w: sw, h: sh,
-      } = srect;
-      const {
-        x1, y1, w, h,
-      } = rect;
-      ctx.drawImage(el, sx1, sy1, sw, sh, x1, y1, w, h);
-    });
-  }
-
   render() {
     const { items } = this.state;
-    const {
-      wrapProps: {
-        width: clientWidth,
-        height: clientHeight,
-      },
-    } = this.props;
     return (
-      <div>
-        <canvas
-          ref={this.handleBind}
-          className={styles.rect}
-          width={clientWidth}
-          height={clientHeight}
-          onMouseDown={this.handleMouseDown}
-          onTouchStart={this.handleTouchStart}
-        />
+      <div className={styles.container}>
+        {items.map((item, i) => (
+          <div
+            key={i}
+            className={styles.rect}
+            style={{
+              top: item.rect.y1,
+              left: item.rect.x1,
+              width: item.rect.w,
+              height: item.rect.h,
+            }}
+            data-index={i}
+            onMouseDown={this.handleMouseDown}
+            onTouchStart={this.handleTouchStart}
+          />
+        ))}
         {items.map((item, i) => (
           <ResultText key={i} data={item.data} ref={node => this.handleBindItem(i, node)} />
         ))}
@@ -329,41 +302,27 @@ function rectJoin(rc1, rc2) {
   };
 }
 
-function transformRect([sx1, sy1, sx2, sy2], options = {}) {
-  const {
-    scale,
-    top = 0,
-    left = 0,
-    zoom = 1,
-  } = options;
-  const sw = sx2 - sx1;
-  const sh = sy2 - sy1;
-  const bw = sw * scale;
-  const bh = sh * scale;
-  const w = bw * zoom;
-  const h = bh * zoom;
-  const x1 = left + scale * sx1 - (w - bw) / 2;
-  const y1 = top + scale * sy1 - (h - bh) / 2;
+function buildRect([x1, y1, x2, y2]) {
+  const w = x2 - x1;
+  const h = y2 - y1;
   return {
-    srect: {
-      x1: sx1,
-      y1: sy1,
-      x2: sx2,
-      y2: sy2,
-      cx: sx1 + sw / 2,
-      cy: sy1 + sh / 2,
-      w: sw,
-      h: sh,
-    },
-    rect: {
-      x1,
-      y1,
-      x2: x1 + w,
-      y2: y1 + h,
-      cx: x1 + w / 2,
-      cy: y1 + h / 2,
-      w,
-      h,
-    },
+    x1,
+    y1,
+    x2,
+    y2,
+    cx: x1 + w / 2,
+    cy: y1 + h / 2,
+    w,
+    h,
   };
+}
+
+function transformRect([x1, y1, x2, y2], options) {
+  const { width, height } = options;
+  return buildRect([
+    x1 * width,
+    y1 * height,
+    x2 * width,
+    y2 * height,
+  ]);
 }

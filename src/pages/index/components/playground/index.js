@@ -1,50 +1,57 @@
 import React, { useState, useRef, useEffect } from 'react';
-import imageUrl from '#/assets/gaara.jpg';
-import MaskedImage from '../masked-image';
 import Result from '../result';
 import styles from './style.module.css';
 
+const messages = [
+  'hello, world',
+  'Every day is Friday',
+  'Today, I don\'t feel like doing anything',
+  'I just wanna lay in my bed',
+  'Don\'t feel like picking up my phone',
+  'So leave a message at the tone',
+  '\'Cause today, I swear, I\'m not doing anything',
+];
+const getMessage = () => messages[Math.floor(Math.random() * messages.length)];
+
 const data = [
   {
-    text: '这是一只眼睛',
-    bbox: [450, 350, 600, 450],
+    text: getMessage(),
+    bbox: [0.3, 0.3, 0.4, 0.4],
   },
   {
-    text: '这是另一只眼睛',
-    bbox: [680, 400, 830, 500],
+    text: getMessage(),
+    bbox: [0.4, 0.4, 0.6, 0.6],
   },
   {
-    text: '爱',
-    bbox: [720, 300, 810, 400],
+    text: getMessage(),
+    bbox: [0.3, 0.5, 0.4, 0.6],
   },
   {
-    text: '这是一只大手',
-    bbox: [280, 1170, 820, 1570],
+    text: getMessage(),
+    bbox: [0.2, 0.6, 0.8, 0.8],
   },
 ];
 
 export default function Playground() {
   const [wrapProps, setWrapProps] = useState(null);
-  const [imageProps, setImageProps] = useState(null);
   const ref = useRef();
 
   useEffect(() => {
     const rect = ref.current.getBoundingClientRect();
-    setWrapProps(rect);
+    setWrapProps({
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+      scale: rect.width / 750,
+    });
   }, []);
 
   return (
     <div className={styles.wrap} ref={ref}>
-      <MaskedImage
-        url={imageUrl}
-        wrapProps={wrapProps}
-        imageProps={imageProps}
-        onLoad={setImageProps}
-      />
-      {imageProps && (
+      {wrapProps && (
         <Result
           wrapProps={wrapProps}
-          imageProps={imageProps}
           data={data}
         />
       )}

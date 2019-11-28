@@ -8,7 +8,7 @@ export default React.forwardRef((props, ref) => {
   const [showText, setShowText] = useState(false);
   const {
     data: {
-      text, style, align, animated,
+      text, style, animated,
     },
   } = props;
 
@@ -35,12 +35,8 @@ export default React.forwardRef((props, ref) => {
   }, [animated]);
 
   if (!text) return null;
-  const className = [
-    styles.wrap,
-    styles[`align-${align || 'left'}`],
-  ].join(' ');
   return (
-    <div className={className} style={style} ref={ref}>
+    <div className={styles.wrap} style={style} ref={ref}>
       <div className={styles.bar} style={{ transform: `scaleX(${scale})` }} />
       <div className={`${styles.text} ${showText ? '' : styles.hidden}`}>{text}</div>
     </div>
